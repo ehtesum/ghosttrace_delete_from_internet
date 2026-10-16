@@ -1,0 +1,433 @@
+<!-- 
+  ╔════════════════════════════════════════════════════════════════════════════╗
+  ║  GhostTrace v4 — Advanced Search Interface                                 ║
+  ║  Modern, responsive search UI with filters, autocomplete & real-time stats ║
+  ╚════════════════════════════════════════════════════════════════════════════╝
+-->
+
+<div id="search-panel" style="display:none;margin-bottom:20px">
+  <!-- Search Header -->
+  <div style="background:linear-gradient(135deg,var(--purple),var(--purple2));border-radius:14px;padding:24px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>
+        <h2 style="color:#fff;font-size:1.3rem;margin-bottom:6px">🔍 Registry Search</h2>
+        <p style="color:rgba(255,255,255,.8);font-size:.85rem">Search billions of platforms, checkers, and databases</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="scan-btn" id="searchRefreshBtn" onclick="refreshSearchIndex()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff">🔄 Refresh Index</button>
+        <button class="scan-btn" id="searchStatsBtn" onclick="toggleSearchStats()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff">📊 Stats</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Box -->
+  <div class="form-card" style="margin-bottom:12px">
+    <div style="display:flex;gap:10px;align-items:stretch">
+      <div style="flex:1;position:relative">
+        <input type="text" id="globalSearchInput" placeholder="Search platforms, categories, tags, descriptions…" 
+          style="width:100%;height:46px;background:var(--s2);border:1px solid var(--bd2);border-radius:9px;padding:0 12px;color:var(--text);font-size:.95rem;outline:none;transition:border-color .2s,box-shadow .2s"
+          onkeyup="handleSearchInput(event)" onfocus="showSearchSuggestions()" onblur="setTimeout(hideSearchSuggestions,200)"/>
+        <div id="searchSuggestions" style="position:absolute;top:100%;left:0;right:0;background:var(--s1);border:1px solid var(--bd);border-top:none;border-radius:0 0 9px 9px;margin-top:-1px;max-height:300px;overflow-y:auto;display:none;z-index:100"></div>
+      </div>
+      <button class="scan-btn" onclick="performGlobalSearch()" style="padding:0 28px">🔎 Search</button>
+    </div>
+
+    <!-- Quick Filters -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:12px">
+      <select id="searchLayerFilter" onchange="applySearchFilters()" style="height:36px;padding:0 10px;background:var(--s2);border:1px solid var(--bd2);border-radius:7px;color:var(--text);font-size:.78rem;cursor:pointer;outline:none">
+        <option value="">All Layers</option>
+        <option value="surface">🌐 Surface Web</option>
+        <option value="deep">🕳 Deep Web</option>
+        <option value="username">👤 Username</option>
+        <option value="image">📷 Image</option>
+        <option value="phone">📞 Phone</option>
+        <option value="domain">🌐 Domain</option>
+      </select>
+      <select id="searchCategoryFilter" onchange="applySearchFilters()" style="height:36px;padding:0 10px;background:var(--s2);border:1px solid var(--bd2);border-radius:7px;color:var(--text);font-size:.78rem;cursor:pointer;outline:none">
+        <option value="">All Categories</option>
+        <option value="breaches">🔥 Breaches</option>
+        <option value="social">📱 Social</option>
+        <option value="developer">💻 Developer</option>
+        <option value="gaming">🎮 Gaming</option>
+        <option value="media">🎵 Media</option>
+        <option value="services">☁ Services</option>
+        <option value="commerce">🛒 Commerce</option>
+      </select>
+      <input type="text" id="searchTagInput" placeholder="Filter by tag…" onkeyup="applySearchFilters()"
+        style="height:36px;padding:0 10px;background:var(--s2);border:1px solid var(--bd2);border-radius:7px;color:var(--text);font-size:.78rem;outline:none"/>
+      <button onclick="clearSearchFilters()" style="height:36px;padding:0 14px;background:var(--s2);border:1px solid var(--bd2);border-radius:7px;color:var(--muted);font-size:.78rem;cursor:pointer;transition:border-color .2s">✕ Clear</button>
+    </div>
+  </div>
+
+  <!-- Search Stats (Hidden by default) -->
+  <div id="searchStatsBox" style="display:none;background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:14px">
+    <h3 style="font-size:.8rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:12px">Search Engine Stats</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+      <div style="padding:10px;background:var(--s2);border-radius:8px">
+        <div style="font-size:1.4rem;font-weight:700;color:var(--purple2)" id="stats-indexed">0</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:4px">Indexed Checkers</div>
+      </div>
+      <div style="padding:10px;background:var(--s2);border-radius:8px">
+        <div style="font-size:1.4rem;font-weight:700;color:var(--blue)" id="stats-cached">0</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:4px">Cached Queries</div>
+      </div>
+      <div style="padding:10px;background:var(--s2);border-radius:8px">
+        <div style="font-size:1.4rem;font-weight:700;color:var(--cyan)" id="stats-uptime">0s</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:4px">Engine Uptime</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Results -->
+  <div id="searchResults" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div>
+        <span style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">
+          Results: <span id="resultCount" style="color:var(--purple2);font-weight:600">0</span>
+          <span id="resultTime" style="color:var(--faint)">(0ms)</span>
+          <span id="resultCached" style="display:none;color:var(--green);margin-left:8px">📦 Cached</span>
+        </span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button onclick="sortResults('relevance')" id="sortRelevance" class="sort-btn active" style="font-size:.72rem">↓ Relevance</button>
+        <button onclick="sortResults('name')" id="sortName" class="sort-btn" style="font-size:.72rem">A-Z Name</button>
+        <button onclick="sortResults('category')" id="sortCategory" class="sort-btn" style="font-size:.72rem">Category</button>
+      </div>
+    </div>
+
+    <!-- Results Grid -->
+    <div id="searchResultsGrid" class="r-grid"></div>
+
+    <!-- Pagination -->
+    <div id="searchPagination" style="display:none;margin-top:20px;text-align:center">
+      <button onclick="prevSearchPage()" style="height:32px;padding:0 12px;background:var(--s1);border:1px solid var(--bd);border-radius:6px;color:var(--text);margin:0 4px;cursor:pointer">← Previous</button>
+      <span id="pageInfo" style="font-size:.78rem;color:var(--muted);margin:0 12px">Page 1</span>
+      <button onclick="nextSearchPage()" style="height:32px;padding:0 12px;background:var(--s1);border:1px solid var(--bd);border-radius:6px;color:var(--text);margin:0 4px;cursor:pointer">Next →</button>
+    </div>
+
+    <!-- Empty State -->
+    <div id="searchEmpty" class="empty" style="display:none;margin-top:40px">
+      <div style="font-size:32px;margin-bottom:12px">🔍</div>
+      <p style="font-size:.9rem">No results found. Try a different search term or adjust your filters.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Styles for Search Components -->
+<style>
+#searchSuggestions {
+  box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
+
+#searchSuggestions > div {
+  padding: 8px 12px;
+  font-size: .78rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--bd);
+  transition: background .2s;
+}
+
+#searchSuggestions > div:hover,
+#searchSuggestions > div:focus {
+  background: var(--s2);
+}
+
+#searchSuggestions > div:last-child {
+  border-bottom: none;
+}
+
+.sort-btn {
+  height: 28px;
+  padding: 0 10px;
+  background: transparent;
+  border: 1px solid var(--bd2);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: .72rem;
+  cursor: pointer;
+  transition: border-color .2s, color .2s;
+}
+
+.sort-btn:hover {
+  border-color: var(--purple);
+  color: var(--purple2);
+}
+
+.sort-btn.active {
+  border-color: var(--purple);
+  color: var(--purple2);
+  background: rgba(124,58,237,.1);
+}
+</style>
+
+<!-- JavaScript for Search Functionality -->
+<script>
+// Search state
+const searchState = {
+  query: '',
+  results: [],
+  filters: {},
+  currentPage: 0,
+  pageSize: 20,
+  sortBy: 'relevance',
+  totalResults: 0,
+  queryTime: 0,
+  cached: false,
+};
+
+// Search input handler with debounce
+let searchTimeout;
+function handleSearchInput(event) {
+  clearTimeout(searchTimeout);
+  const query = event.target.value.trim();
+  
+  if (query.length < 2) {
+    $('searchResults').style.display = 'none';
+    $('searchSuggestions').style.display = 'none';
+    return;
+  }
+  
+  // Show suggestions after 300ms
+  searchTimeout = setTimeout(() => {
+    showSearchSuggestions(query);
+  }, 300);
+}
+
+// Show autocomplete suggestions
+async function showSearchSuggestions(query) {
+  query = query || $('globalSearchInput').value.trim();
+  if (!query || query.length < 2) return;
+  
+  const box = $('searchSuggestions');
+  box.innerHTML = '<div style="padding:10px;color:var(--muted);text-align:center">Loading suggestions…</div>';
+  box.style.display = 'block';
+  
+  try {
+    const response = await fetch(
+      '/api/search?' + new URLSearchParams({
+        q: query,
+        limit: 8,
+      })
+    );
+    const data = await response.json();
+    
+    if (!data.results || data.results.length === 0) {
+      box.innerHTML = '<div style="padding:10px;color:var(--muted)">No suggestions found</div>';
+      return;
+    }
+    
+    let html = '';
+    data.results.slice(0, 8).forEach(([id, doc, score]) => {
+      html += `<div onclick="selectSuggestion('${escHtml(doc.name || '')}')">
+        <strong>${escHtml(doc.name || '')}</strong>
+        <div style="font-size:.7rem;color:var(--muted)">${escHtml(doc.category || '')} • ${escHtml(doc.layer || '')}</div>
+      </div>`;
+    });
+    box.innerHTML = html;
+  } catch (error) {
+    box.innerHTML = '<div style="padding:10px;color:var(--red)">Error: ' + error.message + '</div>';
+  }
+}
+
+function hideSearchSuggestions() {
+  $('searchSuggestions').style.display = 'none';
+}
+
+function selectSuggestion(name) {
+  $('globalSearchInput').value = name;
+  hideSearchSuggestions();
+  performGlobalSearch();
+}
+
+// Perform search
+async function performGlobalSearch() {
+  const query = $('globalSearchInput').value.trim();
+  if (!query) return;
+  
+  searchState.query = query;
+  searchState.currentPage = 0;
+  searchState.filters = {
+    layer: $('searchLayerFilter').value || undefined,
+    category: $('searchCategoryFilter').value || undefined,
+  };
+  
+  await executeSearch();
+}
+
+// Execute search with filters
+async function executeSearch() {
+  const params = new URLSearchParams({
+    q: searchState.query,
+    limit: searchState.pageSize,
+    offset: searchState.currentPage * searchState.pageSize,
+  });
+  
+  if (searchState.filters.layer) params.set('filters', JSON.stringify({layer: searchState.filters.layer}));
+  else if (searchState.filters.category) params.set('filters', JSON.stringify({category: searchState.filters.category}));
+  
+  try {
+    $('resultCached').style.display = 'none';
+    const response = await fetch('/api/search?' + params);
+    const data = await response.json();
+    
+    searchState.results = data.results || [];
+    searchState.totalResults = data.total || 0;
+    searchState.queryTime = data.query_time_ms || 0;
+    searchState.cached = data.cached || false;
+    
+    displayResults();
+    $('searchResults').style.display = 'block';
+  } catch (error) {
+    console.error('Search failed:', error);
+    $('searchEmpty').style.display = 'block';
+    $('searchResultsGrid').innerHTML = '';
+  }
+}
+
+// Display search results
+function displayResults() {
+  const grid = $('searchResultsGrid');
+  const empty = $('searchEmpty');
+  
+  $('resultCount').textContent = searchState.totalResults;
+  $('resultTime').textContent = '(' + searchState.queryTime.toFixed(0) + 'ms)';
+  
+  if (searchState.cached) {
+    $('resultCached').style.display = 'inline';
+  }
+  
+  if (searchState.results.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    $('searchPagination').style.display = 'none';
+    return;
+  }
+  
+  empty.style.display = 'none';
+  grid.innerHTML = '';
+  
+  searchState.results.forEach(([id, doc, score]) => {
+    const card = document.createElement('div');
+    card.className = 'rcard';
+    card.innerHTML = `
+      <div class="rc-head">
+        <span class="rc-icon">🔍</span>
+        <span class="rc-name">${escHtml(doc.name || '')}</span>
+        <span class="rc-status-pill" style="font-size:.65rem;opacity:.7">${Math.round(score*100)}%</span>
+      </div>
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px">
+        <strong>${escHtml(doc.category || '')}</strong> • <code>${escHtml(doc.layer || '')}</code>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        ${(doc.tags || []).map(t => `<span style="font-size:.65rem;padding:2px 6px;border-radius:99px;background:var(--purple-dim);color:var(--purple2)">${escHtml(t)}</span>`).join('')}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  
+  // Show pagination if needed
+  const totalPages = Math.ceil(searchState.totalResults / searchState.pageSize);
+  if (totalPages > 1) {
+    $('pageInfo').textContent = `Page ${searchState.currentPage + 1} of ${totalPages}`;
+    $('searchPagination').style.display = 'block';
+  } else {
+    $('searchPagination').style.display = 'none';
+  }
+}
+
+// Pagination
+function nextSearchPage() {
+  const totalPages = Math.ceil(searchState.totalResults / searchState.pageSize);
+  if (searchState.currentPage < totalPages - 1) {
+    searchState.currentPage++;
+    executeSearch();
+    window.scrollTo(0, $('search-panel').offsetTop);
+  }
+}
+
+function prevSearchPage() {
+  if (searchState.currentPage > 0) {
+    searchState.currentPage--;
+    executeSearch();
+    window.scrollTo(0, $('search-panel').offsetTop);
+  }
+}
+
+// Sorting
+function sortResults(by) {
+  searchState.sortBy = by;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  const btnId = 'sort' + by.charAt(0).toUpperCase() + by.slice(1);
+  const btn = document.getElementById(btnId);
+  if (btn) btn.classList.add('active');
+  
+  if (by === 'relevance') {
+    searchState.results.sort((a, b) => b[2] - a[2]);
+  } else if (by === 'name') {
+    searchState.results.sort((a, b) => (a[1].name || '').localeCompare(b[1].name || ''));
+  } else if (by === 'category') {
+    searchState.results.sort((a, b) => (a[1].category || '').localeCompare(b[1].category || ''));
+  }
+  
+  displayResults();
+}
+
+// Filters
+function applySearchFilters() {
+  searchState.currentPage = 0;
+  executeSearch();
+}
+
+function clearSearchFilters() {
+  $('searchLayerFilter').value = '';
+  $('searchCategoryFilter').value = '';
+  $('searchTagInput').value = '';
+  applySearchFilters();
+}
+
+// Refresh index
+async function refreshSearchIndex() {
+  const btn = $('searchRefreshBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Refreshing…';
+  
+  try {
+    await fetch('/api/search/clear-cache', {method: 'POST'});
+    btn.textContent = '✓ Refreshed!';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = '🔄 Refresh Index';
+    }, 2000);
+  } catch (error) {
+    btn.textContent = '✕ Failed';
+    console.error('Refresh failed:', error);
+  }
+}
+
+// Toggle stats
+async function toggleSearchStats() {
+  const box = $('searchStatsBox');
+  if (box.style.display === 'block') {
+    box.style.display = 'none';
+    return;
+  }
+  
+  box.style.display = 'block';
+  try {
+    const response = await fetch('/api/search/stats');
+    const stats = await response.json();
+    $('stats-indexed').textContent = stats.indexed_checkers || 0;
+    $('stats-cached').textContent = stats.cache_size || 0;
+    $('stats-uptime').textContent = Math.round(stats.uptime_seconds || 0) + 's';
+  } catch (error) {
+    console.error('Failed to fetch stats:', error);
+  }
+}
+
+// Helper function
+function escHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+</script>
