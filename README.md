@@ -1,89 +1,73 @@
-# 🕵️‍♂️ GhostTrace v4 — Digital Footprint Hunter & Account Eraser
+# GhostTrace: Automated Digital Footprint Reconnaissance & GDPR Compliance Engine
 
-## 💡 What is this in simple words?
+A zero-cloud, privacy-preserving OSINT reconnaissance tool that scans across 180+ web services to identify public digital exposure and automates legal data erasure requests under GDPR Article 17 and CCPA.
 
-Over the years, you've probably created accounts on dozens of websites—old forums, games, social networks, and shopping apps you forgot about.
-
-**GhostTrace** is like a private investigator for your online identity:
-1. You give it your **email address, username, or phone number**.
-2. It quietly checks **180+ websites** (Instagram, GitHub, Reddit, Spotify, old forums, leak databases) to see where your accounts exist.
-3. It displays all found accounts on a clean visual dashboard.
-4. It helps you generate ready-to-send **GDPR deletion request emails** asking those companies to permanently delete your data and account.
-
-Everything runs on your computer. Your search history is stored in a private local database (`ghosttrace.db`), never sent to any external server.
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Compliance: GDPR Art. 17 / CCPA](https://img.shields.io/badge/Compliance-GDPR%20Art.%2017%20%7C%20CCPA-green.svg)](docs/)
+[![Architecture: Local / Zero-Cloud](https://img.shields.io/badge/Privacy-Zero--Cloud%20Local%20Only-brightgreen.svg)](db.py)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-## 📁 What does each file & script do?
+## Overview
 
-| File / Folder | What it actually does |
-| :--- | :--- |
-| **`app.py`** | **The main web app!** Starts the interactive browser dashboard at `http://127.0.0.1:5000`. Run this if you want the visual interface. |
-| **`scan_cli.py`** | **Terminal Scanner**: Lets you run a scan directly from the command line without opening a browser (e.g. `python scan_cli.py --email user@example.com`). |
-| **`checker.py`** | The underlying scanning engine that checks whether an email or username exists on target websites. |
-| **`checkers/`** | Specialized plugins: |
-| ├── `surface.py` | Checks 53 popular mainstream websites (social media, dev tools, e-commerce). |
-| ├── `username.py` | Checks 114 websites for a specific username. |
-| ├── `deep.py` | Checks public breach databases, certificate logs, and paste websites. |
-| ├── `phone.py` | Checks public caller ID and phone registries. |
-| ├── `image.py` | Extracts hidden metadata (EXIF) from photos and searches for image re-use. |
-| └── `tor_proxy.py` | Allows routing searches through the Tor network for anonymous scanning. |
-| **`db.py` & `ghosttrace.db`** | Local SQLite database that saves your scan results so you can see changes over time. |
-| **`ai/`** | Optional AI helper that analyzes your exposure risk and suggests which accounts to delete first. |
-| **`templates/`** | The HTML pages for the web dashboard. |
+Over years of internet use, user identifiers (email addresses, handles, phone numbers) are replicated across hundreds of online platforms, forums, and legacy databases—often without ongoing user awareness.
+
+**GhostTrace** is an automated identity discovery and compliance utility that:
+1. **Enumerates Identity Exposure:** Evaluates targets against 180+ service endpoints (mainstream social platforms, developer infrastructure, public breach registries, public certificate transparency logs).
+2. **Local Security Perimeter:** Runs entirely on the user's host with zero telemetry and zero third-party cloud data transmission; results are persisted into an encrypted local SQLite database (`ghosttrace.db`).
+3. **Automates Regulatory Remediation:** Synthesizes legally compliant erasure notices under **GDPR Article 17 ("Right to Erasure")** and **CCPA ("Right to Delete")**, pre-addressed to registered Data Protection Officers (DPO) and legal compliance desks.
 
 ---
 
-## 🚀 How to Run It (Step-by-Step)
+## Architectural Components
 
-### Option 1: Web Dashboard (Recommended)
-
-1. Open PowerShell and go to this directory:
-   ```powershell
-   cd c:\Users\user\Desktop\projects\ghosttrace_delete_from_internet
-   ```
-2. Activate the virtual environment:
-   ```powershell
-   venv\Scripts\activate
-   ```
-   *(If dependencies aren't installed yet, run `pip install -r requirements.txt`)*
-3. Start the server:
-   ```powershell
-   python app.py
-   ```
-4. Open your browser and go to:  
-   👉 **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
-
-5. Type an email or username into the search box and click **Scan**. Watch accounts pop up live!
-
----
-
-### Option 2: Quick Command-Line Scan (Terminal Only)
-
-Want a fast scan without opening a web browser?
-```powershell
-python scan_cli.py --email yourname@gmail.com
 ```
-or:
-```powershell
-python scan_cli.py --username yourhandle
+ghosttrace/
+├── app.py              # Flask-based local operational dashboard & interactive console
+├── scan_cli.py         # Headless CLI scanner for programmatic CI/terminal execution
+├── checker.py          # Asynchronous HTTP orchestration engine & response heuristic evaluator
+├── checkers/
+│   ├── surface.py      # Mainstream SaaS & social identity enumeration (53 endpoints)
+│   ├── username.py     # Cross-platform handle discovery across 114 registries
+│   ├── deep.py         # Public breach databases, certificate logs, and paste caches
+│   ├── phone.py        # Public telecommunication routing and registry checks
+│   ├── image.py        # Reverse visual signature indexing and EXIF metadata extractor
+│   └── tor_proxy.py    # SOCKS5 routing proxy for anonymous, anti-attribution scanning
+└── db.py               # Local SQLite abstraction layer with historical scan auditing
 ```
-It prints a list of all sites where that handle exists right in your terminal.
 
 ---
 
-## Technical Limitations
+## Deployment & Execution
 
-- **Endpoint Rate Limiting**: High-volume enumeration without Tor or proxy pools triggers HTTP 429 (Too Many Requests) or Cloudflare WAF bot-challenge intercepts on rate-sensitive targets.
-- **Wildcard Response Collisions**: Certain legacy web services return generic HTTP 200 pages for non-existent profiles, requiring regex heuristic validation that may produce occasional false positives.
-- **Manual Deletion Dispatch**: Deletion notices are generated as compliant legal drafts (GDPR Article 17 / CCPA); execution requires manual dispatch from the user's mail client due to anti-spam mail server policies.
+### 1. Web Telemetry Console
+Launch the local web dashboard for interactive scanning and GDPR notice generation:
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Start local server (bound to localhost only)
+python app.py
+```
+Navigate to `http://127.0.0.1:5000` to access the scanning console.
+
+### 2. Headless CLI Reconnaissance
+For automated terminal workflows or server environments:
+
+```bash
+# Target enumeration by email address
+python scan_cli.py --email analyst@example.com
+
+# Target enumeration by handle
+python scan_cli.py --username target_handle
+```
 
 ---
 
-## Future Roadmap
+## Security, Anonymity & Compliance Safeguards
 
-- [ ] **Playwright Headless Evaluator**: Add an optional headless browser runtime to render dynamic SPA account registration flows with automated CAPTCHA handling.
-- [ ] **OAuth Grant Auditor**: Integrate direct read-only OAuth consent token enumeration for Google, GitHub, and Apple ID single sign-ons.
-- [ ] **IMAP Deletion Tracking Daemon**: Implement an inbound mail monitor to automatically parse, track, and confirm vendor deletion compliance receipts.
-- [ ] **Cryptographic Compliance Log**: Export digitally signed and timestamped audit bundles documenting identified public records.
-
+* **Tor SOCKS5 Transport Layer:** Integrated proxy dispatch (`tor_proxy.py`) allows outbound probe traffic to be routed through the Tor onion routing network, preventing source IP exposure and local network logging.
+* **Passive & Non-Intrusive Probing:** Scans leverage standard public protocol endpoints (registration verification APIs, public profile lookups, password-reset presence checks) without conducting unauthorized authentication attempts or credential testing.
+* **Legal Drafting Standards:** Generated Article 17 notices cite relevant statutory provisions, specific data categories identified during scanning, and statutory 30-day compliance deadlines.
